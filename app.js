@@ -5,7 +5,8 @@ const app = express();
 const middleware = require("./utils/middleware");
 const logger = require("./utils/logger");
 const config = require("./utils/config");
-const Url = require("../models/url");
+const Url = require("./models/url");
+const { nanoid } = require("nanoid");
 
 const mongoose = require("mongoose");
 
@@ -27,26 +28,35 @@ app.use(cors());
 app.use(express.static("build"));
 app.use(express.json());
 
-app.get("/:shortID", async (request, response) => {
+app.use(middleware.requestLogger);
+
+app.post("/api", async (request, response) => {
+  const fullUrl = request.body.url;
+  if (fullUrl === undefined)
+    return response.status(400).json({ error: "request must have url" });
+
+  const currentUrl = `${request.protocol}://${request.hostname}/`;
+  const url = new Url({
+    full: fullUrl,
+    short: nanoid(config.ID_LENGTH),
+  });
+
+  await url.save();
+
+  response
+    .status(201)
+    .json({ full: url.full, short: `${currentUrl}${url.short}` });
+});
+
+app.get("/:shortId", async (request, response) => {
   const shortId = request.params.shortId;
 
   const url = await Url.findOne({ short: shortId });
 
   if (url === null) return response.status(404).send({ error: "Not found" });
 
+  console.log(url);
   response.redirect(url.full);
-});
-
-app.post("/api/:fullUrl", async (request, response) => {
-  const fullUrl = request.body.fullUrl;
-  console.log("URL requested: ", fullUrl);
-
-  // insert and wait for the record to be inserted using the model
-  const url = new Url({ full: fullUrl });
-
-  const savedUrl = await url.save();
-
-  response.status(201).json(savedUrl);
 });
 
 app.use(middleware.unknownEndpoint);
