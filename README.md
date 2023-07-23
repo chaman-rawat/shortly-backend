@@ -1,2 +1,2 @@
 # shortly-backend
-Frontend repository: https://github.com/chaman-rawat/shortly-frontend
+Frontend repository: https://github.com/chaman-rawat/shortly
